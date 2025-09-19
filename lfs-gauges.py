@@ -2,12 +2,13 @@ import logging
 import random
 import sys
 import socket
+import errno
 import struct
 import threading
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QPushButton, QLabel, QLineEdit
 
-done = False
+program_closed = False
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -20,7 +21,12 @@ class MainWindow(QMainWindow):
         print('Main window')
 
     def closeEvent(self, a0):
+        print("Program terminated...")
         logging.info("Program terminated...")
+
+        # stop packet receiving thread after main window is closed...
+        global program_closed
+        program_closed = True
 
     def initUI(self):
         # add UI elements
@@ -64,12 +70,20 @@ class MainWindow(QMainWindow):
 
     def receive_data(self):
 
-         #Create UDP socket.
+        # Create UDP socket.
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-        # Bind to LFS.
-        sock.bind(('127.0.0.1', 30000))
+        try:
+            # Bind to LFS.
+            sock.bind(("127.0.0.1", 30000))
+        except socket.error as e:
+            if e.errno == errno.EADDRINUSE:
+                print("Port is already in use")
+            else:
+                # something else raised the socket.error exception
+                print(e)
 
+        logging.info('starting receiving data...')
         while True:
             # Receive data.
             data = sock.recv(256)
@@ -77,9 +91,10 @@ class MainWindow(QMainWindow):
             if not data:
                 break # Lost connection
 
-            # if done:
-            #     print("Everything is done")
-            #     break
+            # stop receiving packet if program closes...
+            if program_closed:
+                print("Everything is done")
+                break
 
             # Unpack the data.
             og_pack = struct.unpack('I3sxH2B7f2I3f15sx15sx', data)
@@ -91,7 +106,7 @@ class MainWindow(QMainWindow):
             r_speed = int((speed * 3600 / 1000) + 0.5)
             if r_speed < 10:  # რატომღაც 0 ზე არ ჩერდება.
                 r_speed = 0
-            rpm = int(og_pack[6])
+            rpm = int(og_pack[6]+0.5)
             turbo = og_pack[7]
             eng_temp = og_pack[8]
             fuel = og_pack[9]
@@ -105,7 +120,7 @@ class MainWindow(QMainWindow):
             display1 = og_pack[17]
             display2 = og_pack[18]
 
-            # print(f"*RPM is {rpm}")
+            print(f"*RPM is {rpm}")
 
             self.rpm_label.setText(f"RPM is :{rpm}")
             self.speed_label.setText(f"Speed is :{r_speed} Km/h")
