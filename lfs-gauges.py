@@ -4,15 +4,8 @@ import sys
 import socket
 import struct
 import threading
-from threading import Thread
-from time import sleep
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QPushButton, QLabel, QLineEdit
-
-r_values = {
-"time": '', "car": '', "flags": '', "gear": '', "speed": '', "rpm": '', "turbo": '', "eng_temp": '', "fuel": '',
-"oil_pressure": '', "oil_temp": '', "dashlights": '', "show_lights": '', "throttle": '',
-"brake": '', "clutch": '', "display1": '', "display2": '', }
 
 done = False
 
@@ -70,8 +63,6 @@ class MainWindow(QMainWindow):
 
 
     def receive_data(self):
-
-        # self.rpm_label.setText(f"RPM is :{random.randint(1, 100)}")
 
          #Create UDP socket.
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
