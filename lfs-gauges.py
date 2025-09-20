@@ -8,7 +8,7 @@ import threading
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QPushButton, QLabel, QLineEdit
 
-program_closed = False
+logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -18,19 +18,13 @@ class MainWindow(QMainWindow):
         # a = self.windowTitle()
         self.setGeometry(0, 0, 1024, 720)
         self.initUI()
-        print('Main window')
 
     def closeEvent(self, a0):
-        print("Program terminated...")
         logging.info("Program terminated...")
-
-        # stop packet receiving thread after main window is closed...
-        global program_closed
-        program_closed = True
 
     def initUI(self):
         # add UI elements
-        print("Init UI")
+        logging.info("Init UI")
 
         self.input = QLineEdit()
         self.input.setGeometry(20, 100, 100, 100)
@@ -60,13 +54,12 @@ class MainWindow(QMainWindow):
 
         self.rpm_label.setText(f"RPM is :{random.randint(1, 100)}")
 
+        logging.info('Some log info')
+
     def oc_btn_start(self):
 
-        print('ON click')
-
-        dt_thread = threading.Thread(target=self.receive_data)
+        dt_thread = threading.Thread(target=self.receive_data, daemon=True)
         dt_thread.start()
-
 
     def receive_data(self):
 
@@ -86,15 +79,15 @@ class MainWindow(QMainWindow):
         logging.info('starting receiving data...')
         while True:
             # Receive data.
-            data = sock.recv(256)
+            try:
+                data = sock.recv(256)
+            except:
+                data = []
+                continue
 
             if not data:
+                print("No data")
                 break # Lost connection
-
-            # stop receiving packet if program closes...
-            if program_closed:
-                print("Everything is done")
-                break
 
             # Unpack the data.
             og_pack = struct.unpack('I3sxH2B7f2I3f15sx15sx', data)
