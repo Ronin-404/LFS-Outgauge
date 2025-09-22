@@ -6,9 +6,13 @@ import errno
 import struct
 import threading
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QPushButton, QLabel, QLineEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QPushButton, QLabel, QLineEdit, QLCDNumber
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
+
+gears = {
+    0: 'R', 1: 'N', 2: '1', 3: '2', 4: '3', 5: '4', 6: '5', 7: '6', 8: '7', 9: '8', 10: '9'
+}
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -17,6 +21,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Gauges")
         # a = self.windowTitle()
         self.setGeometry(0, 0, 1024, 720)
+        # self.setStyleSheet("background-color: #04AA6D;")
         self.initUI()
 
     def closeEvent(self, a0):
@@ -26,21 +31,38 @@ class MainWindow(QMainWindow):
         # add UI elements
         logging.info("Init UI")
 
-        self.input = QLineEdit()
-        self.input.setGeometry(20, 100, 100, 100)
+        # self.input = QLineEdit(self)
+        # self.input.setGeometry(20, 100, 100, 100)
 
         # Rpm Label
         self.rpm_label = QLabel('0', self)
-        self.rpm_label.setGeometry(20,200, 100, 100)
+        self.rpm_label.setGeometry(20,100, 100, 100)
 
         # Speed Label
         self.speed_label = QLabel('0', self)
-        self.speed_label.setGeometry(20, 250, 100, 100)
+        self.speed_label.setGeometry(20, 150, 100, 100)
+
+        # Speed LCD
+        self.speed_lcd = QLCDNumber(self)
+        self.speed_lcd.setGeometry(20, 300, 200, 100)
+        # self.speed_lcd.setStyleSheet("background-color: white;")
+        self.speed_lcd.display('000')
+        # RPM LCD
+        self.rpm_lcd = QLCDNumber(self)
+        self.rpm_lcd.setGeometry(20, 400, 200, 100)
+        # self.rpm_lcd.setSegmentStyle()
+        # self.rpm_lcd.setStyleSheet("background-color: white;")
+        self.rpm_lcd.display('00000')
+        # Gear LCD
+        self.gear_lcd = QLCDNumber(self)
+        self.gear_lcd.setGeometry(20, 500, 200, 100)
+        # self.gear_lcd.setStyleSheet("background-color: white;")
+        self.gear_lcd.display('0')
 
         # Start button
         self.btn_start = QPushButton('Start', self)
         self.btn_start.setGeometry(10, 10, 100, 50)
-        # self.btn_start.styleSheet("font-size: 30px;")
+        # self.btn_start.styleSheet("")
         self.btn_start.clicked.connect(self.oc_btn_start)
 
         # Start button
@@ -53,6 +75,12 @@ class MainWindow(QMainWindow):
         print('ON click test')
 
         self.rpm_label.setText(f"RPM is :{random.randint(1, 100)}")
+
+        # self.rpm_lcd.display(8)
+
+        self.rpm_lcd.setSegmentStyle(2)
+
+        print(self.rpm_lcd.segmentStyle())
 
         logging.info('Some log info')
 
@@ -113,10 +141,14 @@ class MainWindow(QMainWindow):
             display1 = og_pack[17]
             display2 = og_pack[18]
 
-            print(f"*RPM is {rpm}")
+            # print(f"*RPM is {rpm}")
 
             self.rpm_label.setText(f"RPM is :{rpm}")
             self.speed_label.setText(f"Speed is :{r_speed} Km/h")
+
+            self.rpm_lcd.display(rpm)
+            self.speed_lcd.display(r_speed)
+            self.gear_lcd.display(gears[gear])
 
         # Release the socket.
         sock.close()
