@@ -5,8 +5,19 @@ import socket
 import errno
 import struct
 import threading
+from PyQt5.QtCore import Qt
+cars_data = {
+    'UF1': {'RD': 6983},
+    'XFG': {'RD': 7979},
+    'XRG': {'RD': 6981},
+    '': {'RD', },
+    '': {'RD', },
+    '': {'RD', },
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QPushButton, QLabel, QLineEdit, QLCDNumber
+}
+
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QPushButton, QLabel, QLineEdit, QLCDNumber, \
+    QProgressBar
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 
@@ -18,6 +29,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.get_data = False
+        self.car = False
         self.setWindowTitle("Gauges")
         # a = self.windowTitle()
         self.setGeometry(0, 0, 1024, 720)
@@ -31,8 +43,13 @@ class MainWindow(QMainWindow):
         # add UI elements
         logging.info("Init UI")
 
-        # self.input = QLineEdit(self)
-        # self.input.setGeometry(20, 100, 100, 100)
+        self.rpm_bar = QProgressBar(self)
+        self.rpm_bar.setGeometry(150, 30, 500, 50)
+        self.rpm_bar.setTextVisible(False)
+        # self.rpm_bar.setOrientation(Qt.Horizontal)
+
+        self.input_line = QLineEdit(self)
+        self.input_line.setGeometry(220, 100, 100, 50)
 
         # Rpm Label
         self.rpm_label = QLabel('0', self)
@@ -47,6 +64,8 @@ class MainWindow(QMainWindow):
         self.speed_lcd.setGeometry(20, 300, 200, 100)
         # self.speed_lcd.setStyleSheet("background-color: white;")
         self.speed_lcd.display('000')
+        self.speed_lcd.setFrameShape(0)
+        self.speed_lcd.setSegmentStyle(0)
         # RPM LCD
         self.rpm_lcd = QLCDNumber(self)
         self.rpm_lcd.setGeometry(20, 400, 200, 100)
@@ -74,13 +93,17 @@ class MainWindow(QMainWindow):
 
         print('ON click test')
 
-        self.rpm_label.setText(f"RPM is :{random.randint(1, 100)}")
+        # self.rpm_label.setText(f"RPM is :{random.randint(1, 100)}")
 
         # self.rpm_lcd.display(8)
 
-        self.rpm_lcd.setSegmentStyle(2)
+        # self.rpm_lcd.setSegmentStyle(2)
 
-        print(self.rpm_lcd.segmentStyle())
+        self.rpm_bar.setValue(random.randint(0, 6000))
+
+
+        # print(self.input_line.text())
+        # self.rpm_lcd.display(self.input_line.text())
 
         logging.info('Some log info')
 
@@ -119,8 +142,22 @@ class MainWindow(QMainWindow):
 
             # Unpack the data.
             og_pack = struct.unpack('I3sxH2B7f2I3f15sx15sx', data)
+
+            # print(og_pack)
+
             time = og_pack[0]
-            car = og_pack[1]
+            car = og_pack[1].decode()
+
+            if car != self.car:
+                self.car = car
+                self.setWindowTitle(car)
+                car_info = cars_data.get(car)
+                max_rpm = car_info['RD']
+                # set max rpm
+                self.rpm_bar.setMaximum(max_rpm)
+
+                self.rpm_bar.setValue(int(max_rpm/ 2))
+
             flags = og_pack[2]
             gear = og_pack[3]
             speed = og_pack[5]  # მეტრი წამში გადაყვანა სჭირდება.
@@ -142,12 +179,26 @@ class MainWindow(QMainWindow):
             display2 = og_pack[18]
 
             # print(f"*RPM is {rpm}")
+            # print(int(throttle*100))
+            # print(og_pack)
+            # print(car.decode())
 
-            self.rpm_label.setText(f"RPM is :{rpm}")
+            # SPEED
             self.speed_label.setText(f"Speed is :{r_speed} Km/h")
+            self.speed_lcd.display(str(r_speed).rjust(3, '0'))
+            # RPM
+            self.rpm_label.setText(f"RPM is :{rpm}")
+            self.rpm_lcd.display(str(rpm).rjust(5, '0'))
+            # whn rpm is bigger than redline
+            if rpm > self.rpm_bar.maximum():
+                self.rpm_bar.setValue(self.rpm_bar.maximum())
+            else:
+                # self.rpm_bar.setValue(rpm)
+                pass
 
-            self.rpm_lcd.display(rpm)
-            self.speed_lcd.display(r_speed)
+            self.rpm_bar.setValue(400)
+
+            # GEAR
             self.gear_lcd.display(gears[gear])
 
         # Release the socket.
@@ -157,6 +208,7 @@ def main():
 
     app = QApplication(sys.argv)
     window = MainWindow()
+    # window.oc_btn_start()
     window.show()
     sys.exit(app.exec_())
 
