@@ -6,19 +6,18 @@ import errno
 import struct
 import threading
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
-cars_data = {'UF1': {'RD': 6983}, 'XFG': {'RD': 7979}, 'XRG': {'RD': 6981}, '': {'RD', }, '': {'RD', }, '': {'RD', },
-
-}
-
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget, QPushButton, QLabel, QLineEdit, QLCDNumber, \
-    QProgressBar
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QLCDNumber, QProgressBar
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 gears = {
     0: 'R', 1: 'N', 2: '1', 3: '2', 4: '3', 5: '4', 6: '5', 7: '6', 8: '7', 9: '8', 10: '9'
 }
+cars_data = {'unknown': {'RD': 0}, 'UF1': {'RD': 6983}, 'XFG': {'RD': 7979}, 'XRG': {'RD': 6981}, 'LX4': {'RD': 8974}, 'LX6': {'RD': 8975}, 'RB4': {'RD': 7481}, 'FXO': {'RD': 7482}, 'XRT': {'RD': 7481}, 'RAC': {'RD': 6986}, 'FZ5': {'RD': 7971}, 'UFR': {'RD': 8979}, 'XFR': {'RD': 7979}, 'FXR': {'RD': 7492}, 'XRR': {'RD': 7492}, 'FZR': {'RD': 8475}, 'MRT': {'RD': 12922}, 'FBM': {'RD': 9180}, 'FOX': {'RD': 7481}, 'FO8': {'RD': 9477}, 'BF1': {'RD': 19912}, }
 
+
+# We shouldn't update UI from another thread
+# QThread is thread safe for UI widgets
 class ReceiverThread(QThread):
 
     changed_values = pyqtSignal(tuple)
@@ -150,7 +149,10 @@ class MainWindow(QMainWindow):
     def UpdateUI(self, og_pack):
         # print(og_pack)
         time = og_pack[0]
-        car = og_pack[1].decode()
+        try:
+            car = og_pack[1].decode()
+        except:
+            car = 'unknown'
 
         if car != self.car:
             self.car = car
