@@ -5,13 +5,14 @@ import socket
 import errno
 import struct
 import threading
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QLCDNumber, QProgressBar
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QLine, QRect
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QLCDNumber, QProgressBar,
+                             QFrame, )
 
 logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 gears = {
-    0: 'R', 1: 'N', 2: '1', 3: '2', 4: '3', 5: '4', 6: '5', 7: '6', 8: '7', 9: '8', 10: '9'
+    0: 'R', 1: '0', 2: '1', 3: '2', 4: '3', 5: '4', 6: '5', 7: '6', 8: '7', 9: '8', 10: '9'
 }
 cars_data = {'unknown': {'RD': 0}, 'UF1': {'RD': 6983}, 'XFG': {'RD': 7979}, 'XRG': {'RD': 6981}, 'LX4': {'RD': 8974}, 'LX6': {'RD': 8975}, 'RB4': {'RD': 7481}, 'FXO': {'RD': 7482}, 'XRT': {'RD': 7481}, 'RAC': {'RD': 6986}, 'FZ5': {'RD': 7971}, 'UFR': {'RD': 8979}, 'XFR': {'RD': 7979}, 'FXR': {'RD': 7492}, 'XRR': {'RD': 7492}, 'FZR': {'RD': 8475}, 'MRT': {'RD': 12922}, 'FBM': {'RD': 9180}, 'FOX': {'RD': 7481}, 'FO8': {'RD': 9477}, 'BF1': {'RD': 19912}, }
 
@@ -64,9 +65,10 @@ class MainWindow(QMainWindow):
         self.get_data = False
         self.car = False
         self.setWindowTitle("Gauges")
+        self.setMinimumSize(1024, 720)
         # a = self.windowTitle()
         self.setGeometry(0, 0, 1024, 720)
-        # self.setStyleSheet("background-color: #04AA6D;")
+        self.setStyleSheet("background-color: #04AA6D;")
         self.initUI()
 
     def closeEvent(self, a0):
@@ -76,51 +78,78 @@ class MainWindow(QMainWindow):
         # add UI elements
         logging.info("Init UI")
 
+        # Horizontal line top
+        self.line_t = QFrame(self)
+        self.line_t.setGeometry(QRect(150, 130, 770, 20))
+        self.line_t.setLineWidth(1)
+        self.line_t.setMidLineWidth(1)
+        self.line_t.setFrameShape(QFrame.HLine)
+        self.line_t.setFrameShadow(QFrame.Sunken)
+        # Horizontal line bottom
+        self.line_b = QFrame(self)
+        self.line_b.setGeometry(QRect(150, 600, 770, 20))
+        self.line_b.setLineWidth(1)
+        self.line_b.setMidLineWidth(1)
+        self.line_b.setFrameShape(QFrame.HLine)
+        self.line_b.setFrameShadow(QFrame.Sunken)
+
         self.rpm_bar = QProgressBar(self)
-        self.rpm_bar.setGeometry(150, 30, 500, 50)
+        self.rpm_bar.setGeometry(150, 50, 700, 50)
         self.rpm_bar.setTextVisible(False)
+        self.rpm_bar.setStyleSheet("QProgressBar::chunk " "{" "background-color: white;" "}")
         # self.rpm_bar.setOrientation(Qt.Horizontal)
+
+        self.rpm_bar_red = QProgressBar(self)
+        self.rpm_bar_red.setGeometry(850, 50, 70, 50)
+        self.rpm_bar_red.setTextVisible(False)
+        self.rpm_bar_red.setStyleSheet("QProgressBar::chunk " "{" "background-color: red;" "}")
+        self.rpm_bar_red.setMaximum(1)
+        self.rpm_bar_red.setValue(1)
 
         self.input_line = QLineEdit(self)
         self.input_line.setGeometry(220, 100, 100, 50)
+        self.input_line.hide()
 
         # Rpm Label
         self.rpm_label = QLabel('0', self)
         self.rpm_label.setGeometry(20,100, 100, 100)
+        self.rpm_label.hide()
 
         # Speed Label
         self.speed_label = QLabel('0', self)
         self.speed_label.setGeometry(20, 150, 100, 100)
+        self.speed_label.hide()
 
-        # Speed LCD
-        self.speed_lcd = QLCDNumber(self)
-        self.speed_lcd.setGeometry(20, 300, 200, 100)
-        # self.speed_lcd.setStyleSheet("background-color: white;")
-        self.speed_lcd.display('000')
-        self.speed_lcd.setFrameShape(0)
-        # self.speed_lcd.setSegmentStyle(0)
         # RPM LCD
         self.rpm_lcd = QLCDNumber(self)
-        self.rpm_lcd.setGeometry(20, 400, 200, 100)
-        # self.rpm_lcd.setSegmentStyle()
-        # self.rpm_lcd.setStyleSheet("background-color: white;")
+        self.rpm_lcd.setGeometry(QRect(420, 170, 201, 81))
+        self.rpm_lcd.setLineWidth(1)
+        self.rpm_lcd.setMidLineWidth(1)
         self.rpm_lcd.display('00000')
         # Gear LCD
         self.gear_lcd = QLCDNumber(self)
-        self.gear_lcd.setGeometry(20, 500, 200, 100)
-        # self.gear_lcd.setStyleSheet("background-color: white;")
+        self.gear_lcd.setGeometry(QRect(420, 260, 201, 201))
+        self.gear_lcd.setFrameShape(QFrame.Box)
+        self.gear_lcd.setMidLineWidth(1)
+        self.gear_lcd.setSmallDecimalPoint(False)
+        self.gear_lcd.setDigitCount(1)
         self.gear_lcd.display('0')
+        # Speed LCD
+        self.speed_lcd = QLCDNumber(self)
+        self.speed_lcd.setGeometry(QRect(420, 470, 201, 81))
+        self.speed_lcd.setMidLineWidth(1)
+        self.speed_lcd.display('000')
 
         # Start button
         self.btn_start = QPushButton('Start', self)
-        self.btn_start.setGeometry(10, 10, 100, 50)
-        # self.btn_start.styleSheet("")
+        self.btn_start.setGeometry(460, 640, 100, 50)
         self.btn_start.clicked.connect(self.oc_btn_start)
 
-        # Start button
+        # Test button
         self.btn_test = QPushButton('Test', self)
-        self.btn_test.setGeometry(10, 80, 100, 50)
+        self.btn_test.setGeometry(10, 150, 100, 50)
         self.btn_test.clicked.connect(self.oc_btn_test)
+        self.btn_test.hide()
 
     def oc_btn_test(self):
 
@@ -160,9 +189,7 @@ class MainWindow(QMainWindow):
             car_info = cars_data.get(car)
             max_rpm = car_info['RD']
             # set max rpm
-            self.rpm_bar.setMaximum(max_rpm)
-
-            self.rpm_bar.setValue(int(max_rpm / 2))
+            self.rpm_bar.setMaximum(max_rpm - 50)
 
         flags = og_pack[2]
         gear = og_pack[3]
@@ -184,11 +211,6 @@ class MainWindow(QMainWindow):
         display1 = og_pack[17]
         display2 = og_pack[18]
 
-        # print(f"*RPM is {rpm}")
-        # print(int(throttle*100))
-        # print(og_pack)
-        # print(car.decode())
-
         # SPEED
         self.speed_label.setText(f"Speed is :{r_speed} Km/h")
         self.speed_lcd.display(str(r_speed).rjust(3, '0'))
@@ -196,10 +218,15 @@ class MainWindow(QMainWindow):
         self.rpm_label.setText(f"RPM is :{rpm}")
         self.rpm_lcd.display(str(rpm).rjust(5, '0'))
         # whn rpm is bigger than redline
-        if rpm > self.rpm_bar.maximum():
+        if rpm >= self.rpm_bar.maximum():
             self.rpm_bar.setValue(self.rpm_bar.maximum())
+            if self.rpm_bar_red.value() == 0:
+                self.rpm_bar_red.setValue(1)
+            else:
+                self.rpm_bar_red.setValue(0)
         else:
             self.rpm_bar.setValue(rpm)
+            self.rpm_bar_red.setValue(1)
 
         # GEAR
         self.gear_lcd.display(gears[gear])
